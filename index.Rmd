@@ -6,5 +6,71 @@ output: html_document
 ---
 
 # Hello world
- 
-Blah Blah ...
+
+##Get packages
+```{r library}
+
+  library(leaflet)
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(DT)
+
+```
+
+##Get data from knb site
+```{r get escapment data}
+
+esc <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/knb.92020.1", method = "libcurl"), 
+                stringsAsFactors = FALSE)
+head(esc)
+
+```
+
+##Annual median escapments
+```{r median esc}
+
+median_esc <- esc %>% 
+  separate(sampleDate, c("Year", "Month", "Day"), sep = "-") %>% 
+  group_by(Species, SASAP.Region, Year, Location) %>% 
+  summarize(escapement = sum(DailyCount)) 
+
+median_esc <- median_esc %>% 
+  group_by(Species) %>% 
+  summarize(median_escapement = median(escapement))
+
+```
+
+##Plotting median escapment
+```{r plot median esc}
+
+ggplot(median_esc, aes(Species, median_escapement)) +
+  geom_col() +
+  coord_flip()
+
+```
+
+## Getting unique locations
+```{r unique locations}
+
+locations <- esc %>% 
+  distinct(Location, Latitude, Longitude) %>% 
+  drop_na()
+
+```
+
+```{r table locations}
+
+datatable(locations)
+
+```
+
+#Here's a map of locations
+```{r map locations}
+
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(~ Longitude, ~ Latitude, popup = ~ Location)
+
+```
+
